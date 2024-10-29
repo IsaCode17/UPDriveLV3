@@ -103,18 +103,41 @@ def upload_file():
         logger.error(f"Error al subir el archivo: {e}")
         return f"Error al subir el archivo: {e}", 500
 
-def download_file(url, filename):
-    try:
-        logger.info(f"Intentando descargar el archivo desde: {url}")
-        response = requests.get(url, stream=True, timeout=30)  # Establece el timeout en segundos
-        response.raise_for_status()  # Lanza un error para códigos de estado HTTP 4xx y 5xx
-        with open(filename, 'wb') as file:
-            shutil.copyfileobj(response.raw, file)
-        logger.info(f"Descarga completa: {filename}")
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error al descargar el archivo: {e}")
-        raise Exception(f"Error al descargar el archivo: {e}")
+#######
+def download_file(url, filename, reintentos=3):
+    intentos = 0
+    while intentos < reintentos:
+        try:
+            logger.info(f"Intentando descargar el archivo desde: {url}")
+            response = requests.get(url, stream=True, timeout=60)
+            response.raise_for_status()
 
+            with open(filename, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        file.write(chunk)
+            logger.info(f"Descarga completa: {filename}")
+            return  # Salir si la descarga es exitosa
+
+        except requests.exceptions.RequestException as e:
+            intentos += 1
+            logger.error(f"Error al descargar el archivo: {e}. Reintentando ({intentos}/{reintentos})")
+            if intentos == reintentos:
+                raise Exception(f"Error al descargar el archivo tras {reintentos} intentos: {e}")
+
+#######
+#def download_file(url, filename):
+#    try:
+#        logger.info(f"Intentando #descargar el archivo desde: {url}")
+#        response = requests.get(url, #stream=True, timeout=30)  # Establece el #timeout en segundos
+#        response.raise_for_status()  # #Lanza un error para códigos de estado #HTTP 4xx y 5xx
+#        with open(filename, 'wb') as #file:
+#            #shutil.copyfileobj(response.raw, file)
+#        logger.info(f"Descarga completa: #{filename}")
+#    except #requests.exceptions.RequestException as #e:
+#        logger.error(f"Error al #descargar el archivo: {e}")
+#        raise Exception(f"Error al #descargar el archivo: {e}")
+#######
 def credentials_to_dict(credentials):
     return {
         'token': credentials.token,
