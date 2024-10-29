@@ -106,7 +106,7 @@ def upload_file():
 def download_file(url, filename):
     try:
         logger.info(f"Intentando descargar el archivo desde: {url}")
-        response = requests.get(url, stream=True)
+        response = requests.get(url, stream=True, timeout=30)  # Establece el timeout en segundos
         response.raise_for_status()  # Lanza un error para códigos de estado HTTP 4xx y 5xx
         with open(filename, 'wb') as file:
             shutil.copyfileobj(response.raw, file)
