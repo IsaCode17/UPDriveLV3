@@ -104,12 +104,12 @@ def upload_file():
         return f"Error al subir el archivo: {e}", 500
 
 #######
-def download_file(url, filename, reintentos=3):
+def download_file(url, filename, reintentos=5):
     intentos = 0
     while intentos < reintentos:
         try:
             logger.info(f"Intentando descargar el archivo desde: {url}")
-            response = requests.get(url, stream=True, timeout=60)
+            response = requests.get(url, stream=True, timeout=200)
             response.raise_for_status()
 
             with open(filename, 'wb') as file:
