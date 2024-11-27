@@ -108,7 +108,7 @@ def download_file(url, filename, reintentos=5):
     while intentos < reintentos:
         try:
             logger.info(f"Intentando descargar el archivo desde: {url}")
-            with httpx.Client(timeout=httpx.Timeout(200.0)) as client:
+            with httpx.Client(timeout=httpx.Timeout(600.0)) as client:
                 with client.stream("GET", url) as response:
                     response.raise_for_status()
                     with open(filename, 'wb') as file:
