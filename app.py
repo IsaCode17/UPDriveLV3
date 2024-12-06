@@ -138,15 +138,27 @@ def download_file(url, filename, reintentos=5):
 def obtener_enlace_directo_mediafire(url):
     try:
         logger.info(f"Procesando enlace de MediaFire: {url}")
-        with httpx.Client(timeout=httpx.Timeout(60.0)) as client:
+        
+        # Cabeceras que simulan un navegador
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Referer": "https://www.mediafire.com/"
+        }
+        
+        # Crear cliente con gestión de cookies
+        with httpx.Client(headers=headers, follow_redirects=True, timeout=httpx.Timeout(60.0)) as client:
             response = client.get(url)
             response.raise_for_status()
 
             # Usar BeautifulSoup para analizar la página HTML
             soup = BeautifulSoup(response.text, 'html.parser')
-            # Buscar el enlace directo en los elementos HTML
-            enlace_directo = soup.find('a', {'id': 'downloadButton'})['href']
-            if enlace_directo:
+            
+            # Buscar el enlace directo en el botón de descarga
+            download_button = soup.find('a', {'id': 'downloadButton'})
+            if download_button and 'href' in download_button.attrs:
+                enlace_directo = download_button['href']
                 logger.info(f"Enlace directo obtenido: {enlace_directo}")
                 return enlace_directo
             else:
