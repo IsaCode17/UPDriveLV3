@@ -107,18 +107,16 @@ def upload_file():
 
 #######
 
-
 def download_file(url, filename, reintentos=5):
-    """Descargar un archivo desde una URL, manejando redirecciones específicas para MediaFire."""
     intentos = 0
+
+    # Detectar si el enlace es de MediaFire
+    if "mediafire.com" in url:
+        logger.info("Enlace detectado como MediaFire, procesando redirección...")
+        url = obtener_enlace_directo_mediafire(url)
+
     while intentos < reintentos:
         try:
-            # Verificar si el enlace es de MediaFire
-            if "mediafire.com" in url:
-                logger.info("Enlace detectado como MediaFire, procesando redirección...")
-                url = get_mediafire_direct_link(url)
-                logger.info(f"Enlace directo de MediaFire obtenido: {url}")
-
             logger.info(f"Intentando descargar el archivo desde: {url}")
             with httpx.Client(timeout=httpx.Timeout(600.0)) as client:
                 with client.stream("GET", url) as response:
@@ -135,29 +133,27 @@ def download_file(url, filename, reintentos=5):
             logger.error(f"Error al descargar el archivo: {e}. Reintentando ({intentos}/{reintentos})")
             if intentos == reintentos:
                 raise Exception(f"Error al descargar el archivo tras {reintentos} intentos: {e}")
+                
 
-def get_mediafire_direct_link(mediafire_url):
-    """
-    Obtiene el enlace directo del archivo desde un enlace de MediaFire.
-    """
+def obtener_enlace_directo_mediafire(url):
     try:
-        with httpx.Client(timeout=httpx.Timeout(600.0)) as client:
-            response = client.get(mediafire_url, follow_redirects=True)
+        logger.info(f"Procesando enlace de MediaFire: {url}")
+        with httpx.Client(timeout=httpx.Timeout(60.0)) as client:
+            response = client.get(url)
             response.raise_for_status()
 
-            # Buscar el enlace de descarga directa en el contenido de la página
-            if "href" in response.text:
-                from bs4 import BeautifulSoup
-                soup = BeautifulSoup(response.text, "html.parser")
-                download_link = soup.find("a", {"aria-label": "Download file"})  # Ajustar selector si cambia
-                if download_link:
-                    return download_link["href"]
-
-            raise Exception("No se encontró un enlace de descarga directo en la página de MediaFire.")
+            # Usar BeautifulSoup para analizar la página HTML
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # Buscar el enlace directo en los elementos HTML
+            enlace_directo = soup.find('a', {'id': 'downloadButton'})['href']
+            if enlace_directo:
+                logger.info(f"Enlace directo obtenido: {enlace_directo}")
+                return enlace_directo
+            else:
+                raise Exception("No se encontró el enlace de descarga en la página de MediaFire.")
     except Exception as e:
+        logger.error(f"Error al obtener el enlace directo de MediaFire: {e}")
         raise Exception(f"Error al obtener el enlace directo de MediaFire: {e}")
-      
-
 
 ######
 #######
